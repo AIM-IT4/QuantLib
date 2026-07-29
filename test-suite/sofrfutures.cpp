@@ -23,8 +23,10 @@
 #include <ql/instruments/overnightindexfuture.hpp>
 #include <ql/indexes/ibor/sofr.hpp>
 #include <ql/quotes/simplequote.hpp>
+#include <ql/termstructures/yield/flatforward.hpp>
 #include <ql/termstructures/yield/piecewiseyieldcurve.hpp>
 #include <ql/termstructures/yield/overnightindexfutureratehelper.hpp>
+#include <ql/time/daycounters/actual360.hpp>
 #include <iomanip>
 
 using namespace QuantLib;
@@ -168,6 +170,33 @@ BOOST_AUTO_TEST_CASE(testBootstrapWithJuneteenth) {
                     << "\n error:           " << error
                     << "\n tolerance:       " << tolerance);
     }
+}
+
+BOOST_AUTO_TEST_CASE(testKnownFixingCappedAtMaturity) {
+    BOOST_TEST_MESSAGE("Testing that a known fixing is accrued only until futures maturity...");
+
+    Date today(5, January, 2024); // Friday
+    Settings::instance().evaluationDate() = today;
+
+    auto forecastCurve = ext::make_shared<FlatForward>(today, 0.03, Actual360());
+    auto sofr = ext::make_shared<Sofr>(Handle<YieldTermStructure>(forecastCurve));
+
+    Date valueDate(4, January, 2024);
+    Date maturityDate(6, January, 2024); // Saturday
+    sofr->addFixing(valueDate, 0.04);
+    sofr->addFixing(today, 0.05);
+
+    OvernightIndexFuture future(sofr, valueDate, maturityDate);
+
+    Actual360 dc;
+    Real compound =
+        (1.0 + 0.04 * dc.yearFraction(valueDate, today)) *
+        (1.0 + 0.05 * dc.yearFraction(today, maturityDate));
+    Real expectedRate =
+        (compound - 1.0) / dc.yearFraction(valueDate, maturityDate);
+    Real expectedPrice = 100.0 * (1.0 - expectedRate);
+
+    BOOST_CHECK_SMALL(future.NPV() - expectedPrice, 1.0e-12);
 }
 
 BOOST_AUTO_TEST_CASE(testPillarDates) {
