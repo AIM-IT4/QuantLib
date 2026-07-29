@@ -26,6 +26,7 @@
 #include <ql/termstructures/yield/flatforward.hpp>
 #include <ql/termstructures/yield/piecewiseyieldcurve.hpp>
 #include <ql/termstructures/yield/overnightindexfutureratehelper.hpp>
+#include <ql/time/daycounters/actual360.hpp>
 #include <iomanip>
 
 using namespace QuantLib;
