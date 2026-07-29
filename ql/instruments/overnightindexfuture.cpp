@@ -106,7 +106,7 @@ namespace QuantLib {
             if (today < maturityDate_) {
                 Real r = history[today];
                 if (r != Null<Real>()) {
-                    Date tomorrow = calendar.advance(today, 1, Days);
+                    Date tomorrow = std::min(calendar.advance(today, 1, Days), maturityDate_);
                     prod *= 1 + r * dayCounter.yearFraction(today, tomorrow);
                     forwardDiscountStart = tomorrow;
                 }
